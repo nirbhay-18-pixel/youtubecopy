@@ -2,7 +2,7 @@ import { fetchYouTubeApi } from './client';
 import type { YouTubeChannel, YouTubeVideo, YouTubeApiResponse, YouTubePlaylist } from '../../types/youtube';
 
 export async function getChannel(channelId: string): Promise<YouTubeChannel | null> {
-  const response = await fetchYouTubeApi<YouTubeChannel>('channels/list', {
+  const response = await fetchYouTubeApi<YouTubeChannel>('channels', {
     part: 'snippet,statistics,brandingSettings',
     id: channelId,
   });
@@ -10,7 +10,7 @@ export async function getChannel(channelId: string): Promise<YouTubeChannel | nu
 }
 
 export async function getChannelByUsername(username: string): Promise<YouTubeChannel | null> {
-  const response = await fetchYouTubeApi<YouTubeChannel>('channels/list', {
+  const response = await fetchYouTubeApi<YouTubeChannel>('channels', {
     part: 'snippet,statistics,brandingSettings',
     forUsername: username,
   });
@@ -29,7 +29,7 @@ export async function getChannelVideos(
   }
 
   // Search for videos from this channel
-  return fetchYouTubeApi<YouTubeVideo>('search/list', {
+  return fetchYouTubeApi<YouTubeVideo>('search', {
     part: 'snippet',
     channelId,
     maxResults,
@@ -51,7 +51,7 @@ export async function getChannelPlaylists(
   };
   if (pageToken) params.pageToken = pageToken;
   
-  return fetchYouTubeApi<YouTubePlaylist>('playlists/list', params);
+  return fetchYouTubeApi<YouTubePlaylist>('playlists', params);
 }
 
 export function formatSubscriberCount(count: string): string {

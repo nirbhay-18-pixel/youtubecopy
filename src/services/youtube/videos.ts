@@ -4,7 +4,7 @@ import type { YouTubeVideo, YouTubeApiResponse } from '../../types/youtube';
 export async function getVideoDetails(
   videoIds: string[]
 ): Promise<YouTubeApiResponse<YouTubeVideo>> {
-  return fetchYouTubeApi<YouTubeVideo>('videos/list', {
+  return fetchYouTubeApi<YouTubeVideo>('videos', {
     part: 'snippet,contentDetails,statistics',
     id: videoIds.join(','),
   });
@@ -28,7 +28,7 @@ export async function getPopularVideos(
   };
   if (pageToken) params.pageToken = pageToken;
   
-  return fetchYouTubeApi<YouTubeVideo>('videos/list', params);
+  return fetchYouTubeApi<YouTubeVideo>('videos', params);
 }
 
 export async function getVideosByCategory(
@@ -46,7 +46,7 @@ export async function getVideosByCategory(
   };
   if (pageToken) params.pageToken = pageToken;
   
-  return fetchYouTubeApi<YouTubeVideo>('videos/list', params);
+  return fetchYouTubeApi<YouTubeVideo>('videos', params);
 }
 
 // Parse ISO 8601 duration to human readable format

@@ -8,14 +8,14 @@ export const getApiKey = (): string => {
   return key;
 };
 
-// Quota tracking
-const quotaCosts: Record<string, Record<string, number>> = {
-  search: { list: 100 },
-  videos: { list: 1 },
-  channels: { list: 1 },
-  commentThreads: { list: 1 },
-  playlistItems: { list: 1 },
-  playlists: { list: 1 },
+// Quota tracking (cost per API call)
+const quotaCosts: Record<string, number> = {
+  search: 100,
+  videos: 1,
+  channels: 1,
+  commentThreads: 1,
+  playlistItems: 1,
+  playlists: 1,
 };
 
 let totalQuotaUsed = 0;
@@ -96,10 +96,8 @@ export async function fetchYouTubeApi<T>(
   }
 
   // Track quota
-  const parts = endpoint.split('/');
-  const resource = parts[0] as string;
-  const method = parts[1] as string;
-  const cost = (quotaCosts[resource] as Record<string, number> | undefined)?.[method] || 1;
+  const resource = endpoint.split('/')[0] as string;
+  const cost = quotaCosts[resource] || 1;
   totalQuotaUsed += cost;
 
   // Check cache
@@ -124,22 +122,40 @@ export async function fetchYouTubeApi<T>(
       const errorData = await response.json().catch(() => ({}));
       const errorMessage = errorData?.error?.message || `HTTP ${response.status}`;
       const errorCode = errorData?.error?.errors?.[0]?.reason || '';
+      const httpStatus = response.status;
       
-      // Provide more helpful error messages
-      let helpfulMessage = errorMessage;
-      if (response.status === 400) {
-        helpfulMessage = `Bad request: ${errorMessage}. Please check your API key and parameters.`;
-      } else if (response.status === 403) {
-        helpfulMessage = `Access denied: ${errorMessage}. Your API key may not have permission for this operation.`;
-      } else if (response.status === 404) {
-        helpfulMessage = `Not found: ${errorMessage}. The requested resource may not exist.`;
-      } else if (response.status === 429) {
-        helpfulMessage = `Rate limit exceeded: ${errorMessage}. Please wait before making more requests.`;
-      } else if (response.status === 500) {
-        helpfulMessage = `YouTube server error: ${errorMessage}. Please try again later.`;
+      // Provide detailed error messages with HTTP status and API error reason
+      let helpfulMessage = `[HTTP ${httpStatus}] ${errorMessage}`;
+      
+      if (errorCode) {
+        helpfulMessage += ` (Reason: ${errorCode})`;
       }
       
-      throw new YouTubeApiError(helpfulMessage, response.status, errorCode);
+      // Add context based on HTTP status
+      if (httpStatus === 400) {
+        helpfulMessage += '. Bad request - check API key and parameters.';
+      } else if (httpStatus === 403) {
+        helpfulMessage += '. Access denied - API key may lack permissions or quota exceeded.';
+      } else if (httpStatus === 404) {
+        helpfulMessage += '. Resource not found - endpoint may be incorrect.';
+      } else if (httpStatus === 429) {
+        helpfulMessage += '. Rate limit exceeded - wait before retrying.';
+      } else if (httpStatus === 500) {
+        helpfulMessage += '. YouTube server error - try again later.';
+      }
+      
+      // Log detailed error in development mode
+      if (import.meta.env.DEV) {
+        console.error('YouTube API Error:', {
+          endpoint,
+          httpStatus,
+          errorCode,
+          errorMessage,
+          url: url.toString().replace(/key=[^&]+/, 'key=[REDACTED]')
+        });
+      }
+      
+      throw new YouTubeApiError(helpfulMessage, httpStatus, errorCode);
     }
 
     const data: YouTubeApiResponse<T> = await response.json();

@@ -30,7 +30,7 @@ export async function searchVideos(
   }
   if (params.regionCode) searchParams.regionCode = params.regionCode;
 
-  return fetchYouTubeApi<YouTubeSearchResult>('search/list', searchParams);
+  return fetchYouTubeApi<YouTubeSearchResult>('search', searchParams);
 }
 
 export async function searchWithFilters(

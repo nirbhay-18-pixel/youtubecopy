@@ -14,7 +14,7 @@ export async function getVideoComments(
   };
   if (pageToken) params.pageToken = pageToken;
   
-  return fetchYouTubeApi<YouTubeComment>('commentThreads/list', params);
+  return fetchYouTubeApi<YouTubeComment>('commentThreads', params);
 }
 
 export async function getCommentReplies(
@@ -29,5 +29,5 @@ export async function getCommentReplies(
   };
   if (pageToken) params.pageToken = pageToken;
   
-  return fetchYouTubeApi<YouTubeComment>('comments/list', params);
+  return fetchYouTubeApi<YouTubeComment>('comments', params);
 }

@@ -2,7 +2,7 @@ import { fetchYouTubeApi } from './client';
 import type { YouTubePlaylist, YouTubePlaylistItem, YouTubeApiResponse } from '../../types/youtube';
 
 export async function getPlaylist(playlistId: string): Promise<YouTubePlaylist | null> {
-  const response = await fetchYouTubeApi<YouTubePlaylist>('playlists/list', {
+  const response = await fetchYouTubeApi<YouTubePlaylist>('playlists', {
     part: 'snippet,contentDetails',
     id: playlistId,
   });
@@ -21,5 +21,5 @@ export async function getPlaylistItems(
   };
   if (pageToken) params.pageToken = pageToken;
   
-  return fetchYouTubeApi<YouTubePlaylistItem>('playlistItems/list', params);
+  return fetchYouTubeApi<YouTubePlaylistItem>('playlistItems', params);
 }
