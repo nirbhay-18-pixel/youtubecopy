@@ -125,7 +125,21 @@ export async function fetchYouTubeApi<T>(
       const errorMessage = errorData?.error?.message || `HTTP ${response.status}`;
       const errorCode = errorData?.error?.errors?.[0]?.reason || '';
       
-      throw new YouTubeApiError(errorMessage, response.status, errorCode);
+      // Provide more helpful error messages
+      let helpfulMessage = errorMessage;
+      if (response.status === 400) {
+        helpfulMessage = `Bad request: ${errorMessage}. Please check your API key and parameters.`;
+      } else if (response.status === 403) {
+        helpfulMessage = `Access denied: ${errorMessage}. Your API key may not have permission for this operation.`;
+      } else if (response.status === 404) {
+        helpfulMessage = `Not found: ${errorMessage}. The requested resource may not exist.`;
+      } else if (response.status === 429) {
+        helpfulMessage = `Rate limit exceeded: ${errorMessage}. Please wait before making more requests.`;
+      } else if (response.status === 500) {
+        helpfulMessage = `YouTube server error: ${errorMessage}. Please try again later.`;
+      }
+      
+      throw new YouTubeApiError(helpfulMessage, response.status, errorCode);
     }
 
     const data: YouTubeApiResponse<T> = await response.json();

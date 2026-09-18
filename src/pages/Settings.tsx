@@ -77,12 +77,38 @@ export default function Settings() {
             <span className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
               YouTube API Key
             </span>
+            <span className={`text-xs px-2 py-0.5 rounded-full ${
+              import.meta.env.VITE_YOUTUBE_API_KEY 
+                ? 'bg-green-500/20 text-green-600 dark:text-green-400' 
+                : 'bg-red-500/20 text-red-600 dark:text-red-400'
+            }`}>
+              {import.meta.env.VITE_YOUTUBE_API_KEY ? 'Configured' : 'Not Set'}
+            </span>
           </div>
-          <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+          <p className="text-xs mb-3" style={{ color: 'var(--text-secondary)' }}>
             {import.meta.env.VITE_YOUTUBE_API_KEY 
-              ? 'API key is configured. You can browse and search videos.'
-              : 'No API key configured. Set VITE_YOUTUBE_API_KEY in your environment to enable video browsing.'}
+              ? '✅ API key is configured. You can browse and search videos.'
+              : '❌ No API key configured. Add VITE_YOUTUBE_API_KEY to your .env file.'}
           </p>
+          {!import.meta.env.VITE_YOUTUBE_API_KEY && (
+            <div className="mt-3 p-3 rounded-lg border" style={{ borderColor: 'var(--border-color)', backgroundColor: 'var(--bg-primary)' }}>
+              <p className="text-xs font-medium mb-2" style={{ color: 'var(--text-primary)' }}>
+                How to configure:
+              </p>
+              <ol className="text-xs space-y-1 list-decimal list-inside" style={{ color: 'var(--text-secondary)' }}>
+                <li>Go to <a href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noopener noreferrer" className="underline" style={{ color: 'var(--color-brand)' }}>Google Cloud Console</a></li>
+                <li>Create a project and enable YouTube Data API v3</li>
+                <li>Create an API key</li>
+                <li>Add it to the <code className="px-1 py-0.5 rounded text-[10px]" style={{ backgroundColor: 'var(--bg-hover)' }}>.env</code> file:</li>
+              </ol>
+              <code className="block mt-2 p-2 rounded text-xs" style={{ backgroundColor: 'var(--bg-hover)', color: 'var(--text-primary)' }}>
+                VITE_YOUTUBE_API_KEY=your_key_here
+              </code>
+              <p className="text-xs mt-2" style={{ color: 'var(--text-muted)' }}>
+                Then restart the development server.
+              </p>
+            </div>
+          )}
         </div>
       </div>
     </div>

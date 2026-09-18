@@ -60,9 +60,11 @@ export default function Home() {
     } catch (err: unknown) {
       if (err instanceof YouTubeApiError) {
         if (err.code === 'API_KEY_MISSING') {
-          setError('YouTube API key is not configured. Please add VITE_YOUTUBE_API_KEY to your environment variables and restart the application.');
+          setError('⚠️ YouTube API key is not configured.\n\nPlease add your API key to the .env file:\nVITE_YOUTUBE_API_KEY=your_key_here\n\nThen restart the development server.\n\nGet your API key at: https://console.cloud.google.com/apis/credentials');
         } else if (err.code === 'QUOTA_EXCEEDED') {
           setError('API quota exceeded. Please try again tomorrow.');
+        } else if (err.code === 'API_KEY_INVALID') {
+          setError('❌ Invalid API key. Please check your VITE_YOUTUBE_API_KEY in the .env file.');
         } else {
           setError(`Error loading videos: ${err.message}`);
         }
@@ -124,7 +126,7 @@ export default function Home() {
         {error ? (
           <div className="flex flex-col items-center justify-center py-20">
             <AlertCircle size={48} className="mb-4" style={{ color: 'var(--text-muted)' }} />
-            <p className="text-lg font-medium mb-2 text-center max-w-md" style={{ color: 'var(--text-primary)' }}>
+            <p className="text-base font-medium mb-2 text-center max-w-lg whitespace-pre-wrap" style={{ color: 'var(--text-primary)' }}>
               {error}
             </p>
             <button
