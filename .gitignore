@@ -1,5 +1,35 @@
+# Dependencies
 node_modules/
-.next/
+.pnp
+.pnp.js
+
+# Testing
+coverage/
+
+# Production
 dist/
 build/
+
+# Environment
+.env
+.env.local
+.env.production
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
 *.log
+npm-debug.log*
+
+# Misc
+.cache/
+.next/
