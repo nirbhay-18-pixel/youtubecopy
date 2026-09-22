@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { searchWithFilters } from '../services/youtube/search';
+import { searchVideos, enrichSearchResults } from '../services/youtube/search';
 import { VideoCard } from '../components/video/VideoCard';
 import { SearchSkeleton } from '../components/ui/Skeleton';
 import { YouTubeApiError } from '../services/youtube/client';
+import { getPublishedAfterDate } from '../utils/duration';
 import type { YouTubeSearchResult, SearchFilters } from '../types/youtube';
-import { AlertCircle, RefreshCw, Filter } from 'lucide-react';
+import { AlertCircle, RefreshCw, Filter, ChevronDown } from 'lucide-react';
 import { useDebounce } from '../hooks';
 
 export default function Search() {
@@ -16,10 +17,11 @@ export default function Search() {
   const [error, setError] = useState<string | null>(null);
   const [nextPageToken, setNextPageToken] = useState<string | undefined>();
   const [showFilters, setShowFilters] = useState(false);
-  const [filters, setFilters] = useState<SearchFilters>({
-    order: 'relevance',
-    videoDuration: 'any',
-  });
+  
+  // Filter states
+  const [sortBy, setSortBy] = useState<string>('relevance');
+  const [uploadDate, setUploadDate] = useState<string>('any');
+  const [duration, setDuration] = useState<string>('any');
 
   const debouncedQuery = useDebounce(query, 300);
 
@@ -30,14 +32,43 @@ export default function Search() {
       if (!pageToken) setLoading(true);
       setError(null);
 
-      const response = await searchWithFilters(searchQuery, filters, pageToken);
+      // Build search parameters
+      const searchParams: any = {
+        q: searchQuery,
+        type: 'video',
+        order: sortBy,
+        maxResults: 20,
+        videoEmbeddable: true, // Only show embeddable videos
+      };
+
+      // Add upload date filter
+      const publishedAfter = getPublishedAfterDate(uploadDate);
+      if (publishedAfter) {
+        searchParams.publishedAfter = publishedAfter;
+      }
+
+      // Add duration filter
+      if (duration !== 'any') {
+        searchParams.videoDuration = duration;
+      }
+
+      // Add page token for pagination
+      if (pageToken) {
+        searchParams.pageToken = pageToken;
+      }
+
+      // Perform search
+      const searchResponse = await searchVideos(searchParams);
+      
+      // Enrich results with video details (duration, views, etc.)
+      const enrichedResponse = await enrichSearchResults(searchResponse);
       
       if (append) {
-        setResults(prev => [...prev, ...response.items]);
+        setResults(prev => [...prev, ...enrichedResponse.items]);
       } else {
-        setResults(response.items);
+        setResults(enrichedResponse.items);
       }
-      setNextPageToken(response.nextPageToken);
+      setNextPageToken(enrichedResponse.nextPageToken);
     } catch (err: unknown) {
       if (err instanceof YouTubeApiError) {
         if (err.code === 'API_KEY_MISSING') {
@@ -53,7 +84,7 @@ export default function Search() {
     } finally {
       setLoading(false);
     }
-  }, [filters]);
+  }, [sortBy, uploadDate, duration]);
 
   useEffect(() => {
     if (debouncedQuery) {
@@ -69,12 +100,8 @@ export default function Search() {
     }
   };
 
-  const handleFilterChange = (newFilters: Partial<SearchFilters>) => {
-    setFilters((prev: SearchFilters) => ({ ...prev, ...newFilters }));
-  };
-
   return (
-    <div className="max-w-4xl mx-auto p-4">
+    <div className="max-w-6xl mx-auto p-4">
       {/* Search header */}
       <div className="flex items-center justify-between mb-4">
         <h1 className="text-lg font-medium" style={{ color: 'var(--text-primary)' }}>
@@ -93,33 +120,53 @@ export default function Search() {
       {/* Filters panel */}
       {showFilters && (
         <div className="mb-6 p-4 rounded-xl border" style={{ borderColor: 'var(--border-color)', backgroundColor: 'var(--bg-secondary)' }}>
-          <div className="flex flex-wrap gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {/* Sort by */}
             <div>
               <label className="text-xs font-medium block mb-1" style={{ color: 'var(--text-secondary)' }}>Sort by</label>
               <select
-                value={filters.order || 'relevance'}
-                onChange={(e) => handleFilterChange({ order: e.target.value as SearchFilters['order'] })}
-                className="px-3 py-1.5 rounded-lg text-sm border"
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+                className="w-full px-3 py-2 rounded-lg text-sm border"
                 style={{ backgroundColor: 'var(--bg-primary)', borderColor: 'var(--border-color)', color: 'var(--text-primary)' }}
               >
                 <option value="relevance">Relevance</option>
-                <option value="date">Upload date</option>
-                <option value="viewCount">View count</option>
+                <option value="date">Newest</option>
+                <option value="viewCount">Most viewed</option>
                 <option value="rating">Rating</option>
               </select>
             </div>
+
+            {/* Upload date */}
+            <div>
+              <label className="text-xs font-medium block mb-1" style={{ color: 'var(--text-secondary)' }}>Upload date</label>
+              <select
+                value={uploadDate}
+                onChange={(e) => setUploadDate(e.target.value)}
+                className="w-full px-3 py-2 rounded-lg text-sm border"
+                style={{ backgroundColor: 'var(--bg-primary)', borderColor: 'var(--border-color)', color: 'var(--text-primary)' }}
+              >
+                <option value="any">Any time</option>
+                <option value="today">Today</option>
+                <option value="week">This week</option>
+                <option value="month">This month</option>
+                <option value="year">This year</option>
+              </select>
+            </div>
+
+            {/* Duration */}
             <div>
               <label className="text-xs font-medium block mb-1" style={{ color: 'var(--text-secondary)' }}>Duration</label>
               <select
-                value={filters.videoDuration || 'any'}
-                onChange={(e) => handleFilterChange({ videoDuration: e.target.value as SearchFilters['videoDuration'] })}
-                className="px-3 py-1.5 rounded-lg text-sm border"
+                value={duration}
+                onChange={(e) => setDuration(e.target.value)}
+                className="w-full px-3 py-2 rounded-lg text-sm border"
                 style={{ backgroundColor: 'var(--bg-primary)', borderColor: 'var(--border-color)', color: 'var(--text-primary)' }}
               >
                 <option value="any">Any</option>
-                <option value="short">Short (&lt; 4 min)</option>
-                <option value="medium">Medium (4-20 min)</option>
-                <option value="long">Long (&gt; 20 min)</option>
+                <option value="short">Under 4 minutes</option>
+                <option value="medium">4-20 minutes</option>
+                <option value="long">Over 20 minutes</option>
               </select>
             </div>
           </div>

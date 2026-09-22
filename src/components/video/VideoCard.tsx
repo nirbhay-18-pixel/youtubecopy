@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import type { YouTubeVideo, YouTubeSearchResult } from '../../types/youtube';
-import { parseDuration, formatViewCount, formatPublishedDate } from '../../services/youtube/videos';
+import { formatDuration, formatViewCount, formatPublishedDate } from '../../utils/duration';
 
 interface VideoCardProps {
   video: YouTubeVideo | YouTubeSearchResult;
@@ -41,13 +41,33 @@ function getPublishedAt(item: YouTubeVideo | YouTubeSearchResult): string {
 }
 
 function getDuration(item: YouTubeVideo | YouTubeSearchResult): string {
-  if (isSearchResult(item)) return '';
-  return item.contentDetails?.duration ? parseDuration(item.contentDetails.duration) : '';
+  // Check if this is an enriched search result with _videoDetails
+  const enrichedItem = item as YouTubeSearchResult & { _videoDetails?: YouTubeVideo };
+  if (enrichedItem._videoDetails?.contentDetails?.duration) {
+    return formatDuration(enrichedItem._videoDetails.contentDetails.duration);
+  }
+  
+  // Otherwise, check if it's a regular YouTubeVideo
+  if (!isSearchResult(item) && item.contentDetails?.duration) {
+    return formatDuration(item.contentDetails.duration);
+  }
+  
+  return '';
 }
 
 function getViewCount(item: YouTubeVideo | YouTubeSearchResult): string {
-  if (isSearchResult(item)) return '';
-  return item.statistics?.viewCount ? formatViewCount(item.statistics.viewCount) : '';
+  // Check if this is an enriched search result with _videoDetails
+  const enrichedItem = item as YouTubeSearchResult & { _videoDetails?: YouTubeVideo };
+  if (enrichedItem._videoDetails?.statistics?.viewCount) {
+    return formatViewCount(enrichedItem._videoDetails.statistics.viewCount);
+  }
+  
+  // Otherwise, check if it's a regular YouTubeVideo
+  if (!isSearchResult(item) && item.statistics?.viewCount) {
+    return formatViewCount(item.statistics.viewCount);
+  }
+  
+  return '';
 }
 
 export function VideoCard({ video, layout = 'grid' }: VideoCardProps) {
@@ -79,7 +99,7 @@ export function VideoCard({ video, layout = 'grid' }: VideoCardProps) {
             />
           </div>
           {duration && (
-            <span className="absolute bottom-2 right-2 bg-black/80 text-white text-xs px-1.5 py-0.5 rounded font-medium">
+            <span className="absolute bottom-2 right-2 bg-black/90 text-white text-xs px-2 py-1 rounded font-semibold shadow-lg">
               {duration}
             </span>
           )}
@@ -125,7 +145,7 @@ export function VideoCard({ video, layout = 'grid' }: VideoCardProps) {
           />
         </div>
         {duration && (
-          <span className="absolute bottom-2 right-2 bg-black/80 text-white text-xs px-1.5 py-0.5 rounded font-medium">
+          <span className="absolute bottom-2 right-2 bg-black/90 text-white text-xs px-2 py-1 rounded font-semibold shadow-lg">
             {duration}
           </span>
         )}
