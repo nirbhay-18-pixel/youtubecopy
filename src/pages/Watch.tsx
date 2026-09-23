@@ -1,14 +1,16 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { YouTubePlayer } from '../components/player/YouTubePlayer';
 import { RelatedVideoCard } from '../components/video/VideoCard';
 import { WatchPageSkeleton } from '../components/ui/Skeleton';
 import { getSingleVideo, formatViewCount, formatPublishedDate } from '../services/youtube/videos';
+import { parseDuration } from '../utils/duration';
 import { getVideoComments } from '../services/youtube/comments';
 import { searchVideos } from '../services/youtube/search';
 import { YouTubeApiError } from '../services/youtube/client';
 import { useLocalStorage } from '../hooks';
 import { useToast } from '../components/ui/Toast';
+import { saveWatchActivity, updateWatchProgress, extractKeywords, saveInteraction } from '../services/recommendations';
 import type { YouTubeVideo, YouTubeSearchResult, YouTubeComment } from '../types/youtube';
 import { 
   ThumbsUp, ThumbsDown, Share2, Bookmark, MoreHorizontal, 
@@ -33,6 +35,11 @@ export default function Watch() {
     'streamnest-bookmark-data', [] as {videoId: string; title: string; channelTitle: string; thumbnailUrl: string; addedAt: string}[]
   );
   const { showToast } = useToast();
+  
+  // Watch tracking refs
+  const watchStartTimeRef = useRef<number>(Date.now());
+  const watchTimeRef = useRef<number>(0);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
     if (!videoId) return;
@@ -51,7 +58,43 @@ export default function Watch() {
         }
         setVideo(videoData);
 
-        // Add to watch history
+        // Parse video duration
+        const durationSeconds = videoData.contentDetails?.duration 
+          ? parseDuration(videoData.contentDetails.duration)
+          : 0;
+
+        // Extract keywords from title and description
+        const tags = extractKeywords(`${videoData.snippet.title} ${videoData.snippet.description}`);
+
+        // Initialize watch tracking
+        watchStartTimeRef.current = Date.now();
+        watchTimeRef.current = 0;
+
+        // Save initial watch activity
+        saveWatchActivity({
+          videoId,
+          title: videoData.snippet.title,
+          channelId: videoData.snippet.channelId,
+          channelTitle: videoData.snippet.channelTitle,
+          thumbnailUrl: videoData.snippet.thumbnails.medium?.url || '',
+          duration: durationSeconds,
+          watchTime: 0,
+          completionPercentage: 0,
+          tags,
+          timestamp: new Date().toISOString(),
+        });
+
+        // Track watch progress every 10 seconds
+        intervalRef.current = setInterval(() => {
+          const elapsed = Math.floor((Date.now() - watchStartTimeRef.current) / 1000);
+          watchTimeRef.current = elapsed;
+          
+          if (durationSeconds > 0) {
+            updateWatchProgress(videoId, elapsed, durationSeconds);
+          }
+        }, 10000); // Update every 10 seconds
+
+        // Add to watch history (for display)
         setWatchHistory((prev: {videoId: string; title: string; channelTitle: string; thumbnailUrl: string; watchedAt: string}[]) => {
           const filtered = prev.filter((item: {videoId: string}) => item.videoId !== videoId);
           return [{
@@ -98,7 +141,27 @@ export default function Watch() {
     };
 
     loadVideo();
-  }, [videoId]);
+    
+    // Cleanup: save final watch progress when leaving page
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
+      
+      // Save final watch progress
+      if (video && videoId) {
+        const durationSeconds = video.contentDetails?.duration 
+          ? parseDuration(video.contentDetails.duration)
+          : 0;
+        
+        const finalWatchTime = Math.floor((Date.now() - watchStartTimeRef.current) / 1000);
+        
+        if (durationSeconds > 0) {
+          updateWatchProgress(videoId, finalWatchTime, durationSeconds);
+        }
+      }
+    };
+  }, [videoId, video]);
 
   const handleBookmark = () => {
     if (!videoId || !video) return;
@@ -121,6 +184,8 @@ export default function Watch() {
         },
         ...prev
       ]);
+      // Save interaction for recommendations
+      saveInteraction(videoId, 'save');
       showToast('Saved to bookmarks', 'success');
     }
   };

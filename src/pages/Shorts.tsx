@@ -4,6 +4,7 @@ import { formatViewCount, formatPublishedDate, formatDuration } from '../utils/d
 import { YouTubeApiError } from '../services/youtube/client';
 import { useToast } from '../components/ui/Toast';
 import { useLocalStorage } from '../hooks';
+import { buildInterestProfile, getTopInterests, hasEnoughActivity, saveInteraction } from '../services/recommendations';
 import type { YouTubeSearchResult, YouTubeVideo } from '../types/youtube';
 import { 
   Heart, MessageCircle, Share2, Bookmark, 
@@ -81,15 +82,40 @@ export default function Shorts() {
   const { showToast } = useToast();
   const categories = getShortsCategories();
 
-  // Load shorts
+  // Load shorts with personalization
   const loadShorts = useCallback(async (category: ShortsCategory, token?: string, append = false) => {
     try {
       if (!token) setLoading(true);
       else setLoadingMore(true);
       setError(null);
 
+      // Determine which category to use
+      let effectiveCategory = category;
+      
+      // If user has activity and is on "for-you", personalize based on interests
+      if (category === 'for-you' && hasEnoughActivity() && !token) {
+        const profile = buildInterestProfile();
+        const topInterests = getTopInterests(profile, 5);
+        
+        // Map interests to shorts categories
+        if (topInterests.length > 0) {
+          const interest = topInterests[0].toLowerCase();
+          if (interest.includes('tech') || interest.includes('code') || interest.includes('program')) {
+            effectiveCategory = 'technology';
+          } else if (interest.includes('game')) {
+            effectiveCategory = 'gaming';
+          } else if (interest.includes('music')) {
+            effectiveCategory = 'music';
+          } else if (interest.includes('study') || interest.includes('learn') || interest.includes('education')) {
+            effectiveCategory = 'study';
+          } else if (interest.includes('ai') || interest.includes('machine')) {
+            effectiveCategory = 'ai';
+          }
+        }
+      }
+
       const response = await searchShorts({
-        category,
+        category: effectiveCategory,
         pageToken: token,
         maxResults: 10,
       });
@@ -164,6 +190,8 @@ export default function Shorts() {
       showToast('Removed from liked shorts', 'info');
     } else {
       setLikedShorts((prev: string[]) => [...prev, videoId]);
+      // Save interaction for recommendations
+      saveInteraction(videoId, 'like');
       showToast('Added to liked shorts', 'success');
     }
   };
@@ -174,6 +202,8 @@ export default function Shorts() {
       showToast('Removed from saved shorts', 'info');
     } else {
       setSavedShorts((prev: string[]) => [...prev, videoId]);
+      // Save interaction for recommendations
+      saveInteraction(videoId, 'save');
       showToast('Saved to Watch Later', 'success');
     }
   };

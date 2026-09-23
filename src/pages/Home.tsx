@@ -5,8 +5,9 @@ import { VideoCard } from '../components/video/VideoCard';
 import { VideoGridSkeleton } from '../components/ui/Skeleton';
 import { YouTubeApiError } from '../services/youtube/client';
 import { getPublishedAfterDate } from '../utils/duration';
+import { getRecommendations, hasEnoughActivity, type ScoredVideo } from '../services/recommendations';
 import type { YouTubeVideo, YouTubeSearchResult, CategoryFilter } from '../types/youtube';
-import { AlertCircle, RefreshCw, TrendingUp, Clock, Flame } from 'lucide-react';
+import { AlertCircle, RefreshCw, TrendingUp, Clock, Flame, Sparkles } from 'lucide-react';
 
 const categories: CategoryFilter[] = [
   'All', 'Music', 'Gaming', 'Education', 'Programming',
@@ -25,6 +26,8 @@ export default function Home() {
   const [trendingVideos, setTrendingVideos] = useState<(YouTubeVideo | YouTubeSearchResult)[]>([]);
   const [latestVideos, setLatestVideos] = useState<(YouTubeVideo | YouTubeSearchResult)[]>([]);
   const [categoryVideos, setCategoryVideos] = useState<(YouTubeVideo | YouTubeSearchResult)[]>([]);
+  const [recommendations, setRecommendations] = useState<ScoredVideo[]>([]);
+  const [loadingRecommendations, setLoadingRecommendations] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeCategory, setActiveCategory] = useState<CategoryFilter>('All');
@@ -68,6 +71,19 @@ export default function Home() {
         // Load category videos if not "All"
         if (activeCategory !== 'All') {
           await loadCategoryVideos(activeCategory);
+        }
+        
+        // Load personalized recommendations
+        if (hasEnoughActivity()) {
+          setLoadingRecommendations(true);
+          try {
+            const recResult = await getRecommendations(12);
+            setRecommendations(recResult.videos);
+          } catch (err) {
+            console.error('Failed to load recommendations:', err);
+          } finally {
+            setLoadingRecommendations(false);
+          }
         }
       } catch (err: unknown) {
         if (err instanceof YouTubeApiError) {
@@ -207,6 +223,45 @@ export default function Home() {
         ) : activeCategory === 'All' ? (
           // Show sections when "All" is selected
           <div className="space-y-8">
+            {/* For You Section - Personalized Recommendations */}
+            {(recommendations.length > 0 || loadingRecommendations) && (
+              <section>
+                <div className="flex items-center gap-2 mb-4">
+                  <Sparkles size={24} style={{ color: 'var(--color-brand)' }} />
+                  <div>
+                    <h2 className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>
+                      For You
+                    </h2>
+                    <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+                      {hasEnoughActivity() 
+                        ? 'Based on your recent activity' 
+                        : 'Popular videos to get you started'}
+                    </p>
+                  </div>
+                </div>
+                {loadingRecommendations ? (
+                  <VideoGridSkeleton count={8} />
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-x-4 gap-y-8">
+                    {recommendations.map((rec, index) => (
+                      <div key={`rec-${index}`} className="relative">
+                        <VideoCard video={rec.video} />
+                        {rec.reasons[0] && (
+                          <div className="mt-1 px-2 py-1 rounded text-xs" 
+                            style={{ 
+                              backgroundColor: 'var(--bg-hover)', 
+                              color: 'var(--text-secondary)' 
+                            }}>
+                            {rec.reasons[0]}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </section>
+            )}
+
             {/* Popular Section */}
             {popularVideos.length > 0 && (
               <section>

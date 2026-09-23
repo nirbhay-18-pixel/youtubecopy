@@ -5,6 +5,7 @@ import { VideoCard } from '../components/video/VideoCard';
 import { SearchSkeleton } from '../components/ui/Skeleton';
 import { YouTubeApiError } from '../services/youtube/client';
 import { getPublishedAfterDate } from '../utils/duration';
+import { saveSearchQuery } from '../services/recommendations';
 import type { YouTubeSearchResult, SearchFilters } from '../types/youtube';
 import { AlertCircle, RefreshCw, Filter, ChevronDown } from 'lucide-react';
 import { useDebounce } from '../hooks';
@@ -24,6 +25,13 @@ export default function Search() {
   const [duration, setDuration] = useState<string>('any');
 
   const debouncedQuery = useDebounce(query, 300);
+
+  // Track search queries for recommendations
+  useEffect(() => {
+    if (debouncedQuery.trim()) {
+      saveSearchQuery(debouncedQuery);
+    }
+  }, [debouncedQuery]);
 
   const loadResults = useCallback(async (searchQuery: string, pageToken?: string, append = false) => {
     if (!searchQuery.trim()) return;
