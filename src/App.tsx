@@ -15,6 +15,7 @@ const Playlist = lazy(() => import('./pages/Playlist'));
 const Bookmarks = lazy(() => import('./pages/Bookmarks'));
 const History = lazy(() => import('./pages/History'));
 const Settings = lazy(() => import('./pages/Settings'));
+const Shorts = lazy(() => import('./pages/Shorts'));
 
 // Simple placeholder pages
 function PlaceholderPage({ title }: { title: string }) {
@@ -79,6 +80,7 @@ export default function App() {
             <Suspense fallback={<PageLoader />}>
               <Routes>
                 <Route path="/" element={<Home />} />
+                <Route path="/shorts" element={<Shorts />} />
                 <Route path="/watch/:videoId" element={<Watch />} />
                 <Route path="/search" element={<Search />} />
                 <Route path="/channel/:channelId" element={<Channel />} />

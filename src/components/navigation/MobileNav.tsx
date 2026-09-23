@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Home, Compass, PlaySquare, Library } from 'lucide-react';
+import { Home, Zap, Compass, Library } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
 
 interface MobileNavProps {
@@ -9,8 +9,8 @@ interface MobileNavProps {
 
 const navItems = [
   { icon: Home, label: 'Home', path: '/' },
+  { icon: Zap, label: 'Shorts', path: '/shorts' },
   { icon: Compass, label: 'Explore', path: '/explore' },
-  { icon: PlaySquare, label: 'Subs', path: '/subscriptions' },
   { icon: Library, label: 'Library', path: '/history' },
 ];
 

@@ -116,3 +116,45 @@ body {
   scrollbar-width: none;
 }
 .hide-scrollbar::-webkit-scrollbar { display: none; }
+
+/* Shorts page styles */
+.shorts-container {
+  scroll-snap-type: y mandatory;
+  -webkit-overflow-scrolling: touch;
+}
+
+.shorts-item {
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+}
+
+/* Vertical video player for Shorts */
+.shorts-player-container {
+  position: relative;
+  width: 100%;
+  max-width: 420px;
+  margin: 0 auto;
+  aspect-ratio: 9/16;
+  max-height: calc(100vh - 180px);
+  background: #000;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.shorts-player-container iframe {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border: none;
+}
+
+/* Mobile optimizations for Shorts */
+@media (max-width: 768px) {
+  .shorts-player-container {
+    max-width: 100%;
+    max-height: calc(100vh - 140px);
+    border-radius: 0;
+  }
+}

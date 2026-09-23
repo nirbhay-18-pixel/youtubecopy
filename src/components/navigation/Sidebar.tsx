@@ -2,7 +2,7 @@ import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { 
   Home, Compass, PlaySquare, Clock, ThumbsUp, 
-  Bookmark, ListVideo, Settings, History, Flame
+  Bookmark, ListVideo, Settings, History, Flame, Zap
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -19,6 +19,7 @@ interface NavItem {
 
 const mainNav: NavItem[] = [
   { icon: <Home size={20} />, label: 'Home', path: '/' },
+  { icon: <Zap size={20} />, label: 'Shorts', path: '/shorts' },
   { icon: <Compass size={20} />, label: 'Explore', path: '/explore' },
   { icon: <PlaySquare size={20} />, label: 'Subscriptions', path: '/subscriptions' },
 ];
